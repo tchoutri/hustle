@@ -65,9 +65,12 @@ scientific = do
     choice
       [ char '.' *> do
           (mantissa, e0) <- fractionalPart whole
-          exponent <- option e0 $ (char 'e' *> exponentPart e0) <|> pure e0
+          exponent <- option e0 $ ((char 'e' <|> char 'E') *> exponentPart e0) <|> pure e0
           pure $ SciValue $ fromInteger sign * Sci.scientific mantissa exponent
       , char 'e' *> do
+          exponent <- exponentPart 0
+          pure $ SciValue $ fromInteger sign * Sci.scientific whole exponent
+      , char 'E' *> do
           exponent <- exponentPart 0
           pure $ SciValue $ fromInteger sign * Sci.scientific whole exponent
       , do
@@ -83,10 +86,10 @@ scientific = do
       let mkNum = T.foldl' step (whole, 0)
       mkNum . T.filter (/= '_') <$> digits
 
-    exponentPart :: Int -> Parser Int
-    exponentPart e0 = do
-      e1 :: Int <- L.signed (pure ()) (fromIntegral <$> decimal_)
-      pure (e0 + e1)
+exponentPart :: Int -> Parser Int
+exponentPart e0 = do
+  e1 :: Int <- L.signed (pure ()) (fromIntegral <$> decimal_)
+  pure (e0 + e1)
 
 match :: Parser a -> Text -> Bool
 match p t = isRight $ runParser (p >> eof) "" t
